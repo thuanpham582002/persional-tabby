@@ -97,13 +97,12 @@ export class SelectorModalComponent<T> {
         }
         else if (this.model === SelectorType.SelectProfile){
             if (!f) {
-                this.filteredOptions = this.options.slice()
-                    .sort(
+                this.filteredOptions = this.options.slice().sort(
                     firstBy<SelectorOption<T>, number>(x => x.weight ?? 0)
                         .thenBy<SelectorOption<T>, string>(x => x.group ?? '')
-                        .thenBy<SelectorOption<T>, string>(x => x.name)
-                        .filter(x => !x.freeInputPattern)
-                );
+                        .thenBy<SelectorOption<T>, string>(x => x.name),
+                )
+                    .filter(x => !x.freeInputPattern)
             } else {
                 this.filteredOptions = new FuzzySearch(
                     this.options,
