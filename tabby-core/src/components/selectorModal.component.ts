@@ -45,6 +45,13 @@ export class SelectorModalComponent<T> {
             } else if (event.key === 'ArrowDown') {
                 this.selectedIndex++
                 event.preventDefault()
+            } else if (event.key === 'Tab') {
+                if (event.shiftKey) {
+                    this.selectedIndex--
+                } else {
+                    this.selectedIndex++
+                }
+                event.preventDefault()
             } else if (event.key === 'Enter') {
                 this.selectOption(this.filteredOptions[this.selectedIndex])
             } else if (event.key === 'Backspace' && !this.preventEdit) {

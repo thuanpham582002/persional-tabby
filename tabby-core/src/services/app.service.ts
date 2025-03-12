@@ -274,13 +274,20 @@ export class AppService {
         // Create options for selector
         const options = this.recentTabs
             .filter(tab => this.tabs.includes(tab) && tab !== this._activeTab)
-            .map((tab, index) => ({
-                name: tab.title,
-                description: tab.customTitle || '',
-                callback: () => {
-                    this.selectTab(tab);
-                }
-            }));
+            .map((tab, index) => {
+                // Find the position of the tab in the toolbar
+                const tabPosition = this.tabs.indexOf(tab) + 1;
+                return {
+                    // Add tab position to the name
+                    name: `[${tabPosition}] ${tab.title}`,
+                    description: tab.customTitle || '',
+                    // Add weight property to sort by recency (negative to prioritize lower indices)
+                    weight: -index,
+                    callback: () => {
+                        this.selectTab(tab);
+                    }
+                };
+            });
 
         if (options.length > 0) {
             this.selector.show('Recent tabs', options);
