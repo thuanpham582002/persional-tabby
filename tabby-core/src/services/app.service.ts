@@ -284,11 +284,13 @@ export class AppService {
                     // Add tab position to the name
                     name: `[${tabPosition}] ${tab.title}`,
                     description: tab.customTitle || '',
+                    weight: -index,
                     callback: () => {
                         this.selectTab(tab);
                     }
                 };
-            });
+            })
+            .reverse();
 
         if (options.length > 0) {
             this.selector.show('Recent tabs', options);
