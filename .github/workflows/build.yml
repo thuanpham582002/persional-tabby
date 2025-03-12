@@ -1,39 +1,39 @@
 name: Package-Build
 on: [push, pull_request]
 jobs:
-  Lint:
-    runs-on: ubuntu-24.04
+  # Lint:
+  #   runs-on: ubuntu-24.04
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v3
+  #     with:
+  #       fetch-depth: 0
 
-    - name: Installing Node
-      uses: actions/setup-node@v3.7.0
-      with:
-        node-version: 22
+  #   - name: Installing Node
+  #     uses: actions/setup-node@v3.7.0
+  #     with:
+  #       node-version: 22
 
-    - name: Install deps
-      run: |
-        sudo apt-get update && sudo apt-get install -y libfontconfig1-dev
-        npm i -g yarn
-        cd app
-        yarn
-        cd ..
-        rm app/node_modules/.yarn-integrity
-        yarn
+  #   - name: Install deps
+  #     run: |
+  #       sudo apt-get update && sudo apt-get install -y libfontconfig1-dev
+  #       npm i -g yarn
+  #       cd app
+  #       yarn
+  #       cd ..
+  #       rm app/node_modules/.yarn-integrity
+  #       yarn
 
-    - name: Build typings
-      run: yarn run build:typings
+  #   - name: Build typings
+  #     run: yarn run build:typings
 
-    - name: Lint
-      run: echo "Linting skipped"
+  #   - name: Lint
+  #     run: echo "Linting skipped"
 
   macOS-Build:
     runs-on: macos-15
-    needs: Lint
+    # needs: Lint
     strategy:
       matrix:
         include:
@@ -131,7 +131,7 @@ jobs:
 
   Linux-Build:
     runs-on: ${{matrix.os}}
-    needs: Lint
+    # needs: Lint
     strategy:
       matrix:
         include:
@@ -299,7 +299,7 @@ jobs:
 
   Windows-Build:
     runs-on: windows-latest
-    needs: Lint
+    # needs: Lint
     strategy:
       matrix:
         include:
