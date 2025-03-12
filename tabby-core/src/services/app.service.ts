@@ -15,6 +15,7 @@ import { ConfigService } from './config.service'
 import { TabRecoveryService } from './tabRecovery.service'
 import { TabsService, NewTabParameters } from './tabs.service'
 import { SelectorService } from './selector.service'
+import { SelectorType } from '../api/selector'
 
 class CompletionObserver {
     get done$ (): Observable<void> { return this.done }
@@ -285,15 +286,12 @@ export class AppService {
             .map((tab, index) => {
                 // Find the position of the tab in the toolbar
                 const tabPosition = this.tabs.indexOf(tab) + 1;
-                
-                console.log(`Tab: ${tab.title}, Index: ${index}, Position: ${tabPosition}`);
-                
                 return {
                     // Add tab position to the name
                     name: `[${tabPosition}] ${tab.title}`,
                     description: tab.customTitle || '',
-                    // We set the weight as the index - in SelectorService we'll sort in descending order
-                    weight: index,
+                    // Add weight property to sort by recency (negative to prioritize lower indices)
+                    weight: -index,
                     callback: () => {
                         this.selectTab(tab);
                     }
@@ -305,9 +303,7 @@ export class AppService {
         ))
 
         if (options.length > 0) {
-            // Use the sortDesc parameter to sort by weight in descending order
-            // This will show most recently used tabs first
-            this.selector.show('Recent tabs', options, true);
+            this.selector.show('Recent tabs', options, SelectorType.RecentTabs);
         }
     }
 

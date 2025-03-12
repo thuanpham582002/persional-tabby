@@ -2,7 +2,7 @@ import { firstBy } from 'thenby'
 import { Component, Input, HostListener, ViewChildren, QueryList, ElementRef } from '@angular/core' // eslint-disable-line @typescript-eslint/no-unused-vars
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap'
 import FuzzySearch from 'fuzzy-search'
-import { SelectorOption } from '../api/selector'
+import { SelectorOption, SelectorType } from '../api/selector'
 
 /** @hidden */
 @Component({
@@ -16,7 +16,7 @@ export class SelectorModalComponent<T> {
     @Input() filter = ''
     @Input() name: string
     @Input() selectedIndex = 0
-    @Input() sortDesc = false
+    @Input() model: SelectorType = SelectorType.SelectProfile
     hasGroups = false
     @ViewChildren('item') itemChildren: QueryList<ElementRef>
     private preventEdit: boolean
@@ -83,41 +83,39 @@ export class SelectorModalComponent<T> {
     onFilterChange (): void {
         const f = this.filter.trim().toLowerCase()
         if (!f) {
-            // Create a sorter based on weight
-            let sorter = firstBy<SelectorOption<T>, number>(x => x.weight ?? 0);
+            this.filteredOptions = this.options.slice();
             
-            // If sortDesc is true, reverse the weight sorting order
-            if (this.sortDesc) {
-                sorter = firstBy<SelectorOption<T>, number>((x) => -(x.weight ?? 0));
+            if (this.model === SelectorType.RecentTabs) {
+                this.filteredOptions.sort((a, b) => (a.weight ?? 0) - (b.weight ?? 0));
+            } else {
+                this.filteredOptions.sort(
+                    firstBy<SelectorOption<T>, number>(x => x.weight ?? 0)
+                        .thenBy<SelectorOption<T>, string>(x => x.group ?? '')
+                        .thenBy<SelectorOption<T>, string>(x => x.name)
+                );
             }
             
-            // Continue with secondary sort criteria
-            sorter = sorter
-                .thenBy<SelectorOption<T>, string>(x => x.group ?? '')
-                .thenBy<SelectorOption<T>, string>(x => x.name);
-            
-            this.filteredOptions = this.options.slice()
-                .sort(sorter)
-                .filter(x => !x.freeInputPattern);
+            this.filteredOptions = this.filteredOptions.filter(x => !x.freeInputPattern);
         } else {
-            // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
             this.filteredOptions = new FuzzySearch(
                 this.options,
                 ['name', 'group', 'description'],
                 { sort: true },
             ).search(f)
 
-            // Create a sorter for free input patterns
-            let freeOptionSorter = firstBy<SelectorOption<T>, number>(x => x.weight ?? 0);
-            if (this.sortDesc) {
-                freeOptionSorter = firstBy<SelectorOption<T>, number>((x) => -(x.weight ?? 0));
+            if (this.model === SelectorType.RecentTabs) {
+                this.options.filter(x => x.freeInputPattern).sort(firstBy<SelectorOption<T>, number>(x => x.weight ?? 0)).forEach(freeOption => {
+                    if (!this.filteredOptions.includes(freeOption)) {
+                        this.filteredOptions.push(freeOption)
+                    }
+                }) 
+            } else {
+                this.options.filter(x => x.freeInputPattern).sort(firstBy<SelectorOption<T>, number>(x => x.weight ?? 0)).forEach(freeOption => {
+                    if (!this.filteredOptions.includes(freeOption)) {
+                        this.filteredOptions.push(freeOption)
+                    }
+                })
             }
-
-            this.options.filter(x => x.freeInputPattern).sort(freeOptionSorter).forEach(freeOption => {
-                if (!this.filteredOptions.includes(freeOption)) {
-                    this.filteredOptions.push(freeOption)
-                }
-            })
         }
         this.selectedIndex = Math.max(0, this.selectedIndex)
         this.selectedIndex = Math.min(this.filteredOptions.length - 1, this.selectedIndex)
