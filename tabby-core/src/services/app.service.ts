@@ -284,8 +284,6 @@ export class AppService {
                     // Add tab position to the name
                     name: `[${tabPosition}] ${tab.title}`,
                     description: tab.customTitle || '',
-                    // Add weight property to sort by recency (negative to prioritize lower indices)
-                    weight: -index,
                     callback: () => {
                         this.selectTab(tab);
                     }
