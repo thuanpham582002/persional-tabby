@@ -266,17 +266,24 @@ export class AppService {
     }
 
     /** Switches to the next recent tab */
-    switchRecentTab (): void {
+    switchRecentTab(): void {
         if (this.recentTabs.length === 0) {
-            return
+            return;
         }
-        
-        // Get the most recent tab that still exists in the tabs list
-        for (const recentTab of this.recentTabs) {
-            if (this.tabs.includes(recentTab) && recentTab !== this._activeTab) {
-                this.selectTab(recentTab)
-                break
-            }
+
+        // Create options for selector
+        const options = this.recentTabs
+            .filter(tab => this.tabs.includes(tab) && tab !== this._activeTab)
+            .map((tab, index) => ({
+                name: tab.title,
+                description: tab.customTitle || '',
+                callback: () => {
+                    this.selectTab(tab);
+                }
+            }));
+
+        if (options.length > 0) {
+            this.selector.show('Recent tabs', options);
         }
     }
 
