@@ -289,6 +289,7 @@ export class AppService {
                 return {
                     name: `[${tabPosition}] ${tab.title}`,
                     description: tab.customTitle || '',
+                    weight: index,
                     callback: () => {
                         this.selectTab(tab);
                     }
