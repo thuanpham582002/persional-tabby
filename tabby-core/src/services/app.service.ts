@@ -236,6 +236,7 @@ export class AppService {
             
             // Add to recent tabs
             if (this._activeTab) {
+                console.log('Before update recentTabs:', this.recentTabs.map(t => t.title))
                 // Remove the tab from the list if it's already there
                 this.recentTabs = this.recentTabs.filter(t => t !== this._activeTab)
                 // Add it at the top of the list
@@ -244,6 +245,7 @@ export class AppService {
                 if (this.recentTabs.length > 10) {
                     this.recentTabs.pop()
                 }
+                console.log('After update recentTabs:', this.recentTabs.map(t => t.title))
             }
         }
         
@@ -274,23 +276,37 @@ export class AppService {
             return;
         }
 
+        console.log('Current recentTabs:', this.recentTabs.map((t, i) => `${i}: ${t.title}`))
+        console.log('Current active tab:', this._activeTab?.title)
+        
         // Create options for selector
         const options = this.recentTabs
             .filter(tab => this.tabs.includes(tab) && tab !== this._activeTab)
             .map((tab, index) => {
                 // Find the position of the tab in the toolbar
                 const tabPosition = this.tabs.indexOf(tab) + 1;
+                // SelectorModalComponent sorts by weight in ascending order
+                // So we use 100 - index to ensure most recent tabs (lower index) get higher priority
+                // 100 is arbitrary, just to avoid negative numbers
+                const sortWeight = 100 - index;
+                
+                console.log(`Tab: ${tab.title}, Index: ${index}, Weight: ${sortWeight}`);
+                
                 return {
                     // Add tab position to the name
                     name: `[${tabPosition}] ${tab.title}`,
                     description: tab.customTitle || '',
-                    weight: -index,
+                    // Weight affects sorting - higher values will appear first
+                    weight: sortWeight,
                     callback: () => {
                         this.selectTab(tab);
                     }
                 };
-            })
-            .reverse();
+            });
+
+        console.log('Generated selector options:', options.map((o, i) => 
+            `${i}: ${o.name}, weight: ${o.weight}`
+        ))
 
         if (options.length > 0) {
             this.selector.show('Recent tabs', options);
