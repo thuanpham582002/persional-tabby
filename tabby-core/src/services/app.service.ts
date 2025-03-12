@@ -285,19 +285,15 @@ export class AppService {
             .map((tab, index) => {
                 // Find the position of the tab in the toolbar
                 const tabPosition = this.tabs.indexOf(tab) + 1;
-                // SelectorModalComponent sorts by weight in ascending order
-                // So we use 100 - index to ensure most recent tabs (lower index) get higher priority
-                // 100 is arbitrary, just to avoid negative numbers
-                const sortWeight = 100 - index;
                 
-                console.log(`Tab: ${tab.title}, Index: ${index}, Weight: ${sortWeight}`);
+                console.log(`Tab: ${tab.title}, Index: ${index}, Position: ${tabPosition}`);
                 
                 return {
                     // Add tab position to the name
                     name: `[${tabPosition}] ${tab.title}`,
                     description: tab.customTitle || '',
-                    // Weight affects sorting - higher values will appear first
-                    weight: sortWeight,
+                    // We set the weight as the index - in SelectorService we'll sort in descending order
+                    weight: index,
                     callback: () => {
                         this.selectTab(tab);
                     }
@@ -309,7 +305,9 @@ export class AppService {
         ))
 
         if (options.length > 0) {
-            this.selector.show('Recent tabs', options);
+            // Use the sortDesc parameter to sort by weight in descending order
+            // This will show most recently used tabs first
+            this.selector.show('Recent tabs', options, true);
         }
     }
 

@@ -16,6 +16,7 @@ export class SelectorModalComponent<T> {
     @Input() filter = ''
     @Input() name: string
     @Input() selectedIndex = 0
+    @Input() sortDesc = false
     hasGroups = false
     @ViewChildren('item') itemChildren: QueryList<ElementRef>
     private preventEdit: boolean
@@ -82,12 +83,22 @@ export class SelectorModalComponent<T> {
     onFilterChange (): void {
         const f = this.filter.trim().toLowerCase()
         if (!f) {
-            this.filteredOptions = this.options.slice().sort(
-                firstBy<SelectorOption<T>, number>(x => x.weight ?? 0)
-                    .thenBy<SelectorOption<T>, string>(x => x.group ?? '')
-                    .thenBy<SelectorOption<T>, string>(x => x.name),
-            )
-                .filter(x => !x.freeInputPattern)
+            // Create a sorter based on weight
+            let sorter = firstBy<SelectorOption<T>, number>(x => x.weight ?? 0);
+            
+            // If sortDesc is true, reverse the weight sorting order
+            if (this.sortDesc) {
+                sorter = firstBy<SelectorOption<T>, number>((x) => -(x.weight ?? 0));
+            }
+            
+            // Continue with secondary sort criteria
+            sorter = sorter
+                .thenBy<SelectorOption<T>, string>(x => x.group ?? '')
+                .thenBy<SelectorOption<T>, string>(x => x.name);
+            
+            this.filteredOptions = this.options.slice()
+                .sort(sorter)
+                .filter(x => !x.freeInputPattern);
         } else {
             // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
             this.filteredOptions = new FuzzySearch(
@@ -96,7 +107,13 @@ export class SelectorModalComponent<T> {
                 { sort: true },
             ).search(f)
 
-            this.options.filter(x => x.freeInputPattern).sort(firstBy<SelectorOption<T>, number>(x => x.weight ?? 0)).forEach(freeOption => {
+            // Create a sorter for free input patterns
+            let freeOptionSorter = firstBy<SelectorOption<T>, number>(x => x.weight ?? 0);
+            if (this.sortDesc) {
+                freeOptionSorter = firstBy<SelectorOption<T>, number>((x) => -(x.weight ?? 0));
+            }
+
+            this.options.filter(x => x.freeInputPattern).sort(freeOptionSorter).forEach(freeOption => {
                 if (!this.filteredOptions.includes(freeOption)) {
                     this.filteredOptions.push(freeOption)
                 }
