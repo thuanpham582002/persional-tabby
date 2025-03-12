@@ -52,6 +52,7 @@ export class AppService {
     private lastTabIndex = 0
     private _activeTab: BaseTabComponent | null = null
     private closedTabsStack: RecoveryToken[] = []
+    private recentTabs: BaseTabComponent[] = []
 
     private activeTabChange = new Subject<BaseTabComponent|null>()
     private tabsChanged = new Subject<void>()
@@ -227,13 +228,25 @@ export class AppService {
         } else {
             this.lastTabIndex = 0
         }
+        
         if (this._activeTab) {
             this._activeTab.clearActivity()
             this._activeTab.emitBlurred()
             this._activeTab.emitVisibility(false)
+            
+            // Add to recent tabs
+            if (this._activeTab && !this.recentTabs.includes(this._activeTab)) {
+                this.recentTabs.unshift(this._activeTab)
+                // Keep only last 10 tabs in history
+                if (this.recentTabs.length > 10) {
+                    this.recentTabs.pop()
+                }
+            }
         }
+        
         this._activeTab = tab
         this.activeTabChange.next(tab)
+        
         setImmediate(() => {
             this._activeTab?.emitFocused()
             this._activeTab?.emitVisibility(true)
@@ -250,6 +263,21 @@ export class AppService {
             }
         }
         return null
+    }
+
+    /** Switches to the next recent tab */
+    switchRecentTab (): void {
+        if (this.recentTabs.length === 0) {
+            return
+        }
+        
+        // Get the most recent tab that still exists in the tabs list
+        for (const recentTab of this.recentTabs) {
+            if (this.tabs.includes(recentTab) && recentTab !== this._activeTab) {
+                this.selectTab(recentTab)
+                break
+            }
+        }
     }
 
     /** Switches between the current tab and the previously active one */

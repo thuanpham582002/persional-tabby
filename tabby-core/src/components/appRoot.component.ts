@@ -108,6 +108,9 @@ export class AppRootComponent {
                 if (hotkey === 'toggle-last-tab') {
                     this.app.toggleLastTab()
                 }
+                if (hotkey === 'switch-recent-tab') {
+                    this.app.switchRecentTab()
+                }
                 if (hotkey === 'next-tab') {
                     this.app.nextTab()
                 }

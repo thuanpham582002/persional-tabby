@@ -6,6 +6,8 @@ hotkeys:
   reopen-tab:
     - '⌘-Shift-T'
   toggle-last-tab: []
+  switch-recent-tab:
+    - '⌘-Tab'
   rename-tab:
     - '⌘-R'
   next-tab:

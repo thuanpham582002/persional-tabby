@@ -36,6 +36,10 @@ export class AppHotkeyProvider extends HotkeyProvider {
             name: this.translate.instant('Toggle last tab'),
         },
         {
+            id: 'switch-recent-tab',
+            name: this.translate.instant('Switch between recent tabs'),
+        },
+        {
             id: 'next-tab',
             name: this.translate.instant('Next tab'),
         },
