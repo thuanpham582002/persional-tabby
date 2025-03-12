@@ -82,43 +82,44 @@ export class SelectorModalComponent<T> {
 
     onFilterChange (): void {
         const f = this.filter.trim().toLowerCase()
-        if (!f) {
-            this.filteredOptions = this.options.slice();
-            
-            if (this.model === SelectorType.RecentTabs) {
-                this.filteredOptions.sort((a, b) => (a.weight ?? 0) - (b.weight ?? 0));
+        if (this.model === SelectorType.RecentTabs) {
+            if (!f) {
+                this.filteredOptions = this.options.slice()
             } else {
-                this.filteredOptions.sort(
+                this.filteredOptions = new FuzzySearch(
+                    this.options,
+                    ['name', 'description'],
+                    { sort: true },
+                ).search(f)
+            }
+            this.selectedIndex = Math.max(0, this.selectedIndex)
+            this.selectedIndex = Math.min(this.filteredOptions.length - 1, this.selectedIndex)
+        }
+        else if (this.model === SelectorType.SelectProfile){
+            if (!f) {
+                this.filteredOptions = this.options.slice()
+                    .sort(
                     firstBy<SelectorOption<T>, number>(x => x.weight ?? 0)
                         .thenBy<SelectorOption<T>, string>(x => x.group ?? '')
                         .thenBy<SelectorOption<T>, string>(x => x.name)
+                        .filter(x => !x.freeInputPattern)
                 );
-            }
-            
-            this.filteredOptions = this.filteredOptions.filter(x => !x.freeInputPattern);
-        } else {
-            this.filteredOptions = new FuzzySearch(
-                this.options,
-                ['name', 'group', 'description'],
-                { sort: true },
-            ).search(f)
-
-            if (this.model === SelectorType.RecentTabs) {
-                this.options.filter(x => x.freeInputPattern).sort(firstBy<SelectorOption<T>, number>(x => x.weight ?? 0)).forEach(freeOption => {
-                    if (!this.filteredOptions.includes(freeOption)) {
-                        this.filteredOptions.push(freeOption)
-                    }
-                }) 
             } else {
-                this.options.filter(x => x.freeInputPattern).sort(firstBy<SelectorOption<T>, number>(x => x.weight ?? 0)).forEach(freeOption => {
-                    if (!this.filteredOptions.includes(freeOption)) {
-                        this.filteredOptions.push(freeOption)
-                    }
+                this.filteredOptions = new FuzzySearch(
+                    this.options,
+                    ['name', 'group', 'description'],
+                    { sort: true },
+                ).search(f)
+                    this.options.filter(x => x.freeInputPattern).sort(firstBy<SelectorOption<T>, number>(x => x.weight ?? 0)).forEach(freeOption => {
+                        if (!this.filteredOptions.includes(freeOption)) {
+                            this.filteredOptions.push(freeOption)
+                        }
                 })
             }
+            this.selectedIndex = Math.max(0, this.selectedIndex)
+            this.selectedIndex = Math.min(this.filteredOptions.length - 1, this.selectedIndex)
         }
-        this.selectedIndex = Math.max(0, this.selectedIndex)
-        this.selectedIndex = Math.min(this.filteredOptions.length - 1, this.selectedIndex)
+        
     }
 
     filterMatches (option: SelectorOption<T>, terms: string[]): boolean {
