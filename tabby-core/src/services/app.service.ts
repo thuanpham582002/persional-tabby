@@ -235,7 +235,10 @@ export class AppService {
             this._activeTab.emitVisibility(false)
             
             // Add to recent tabs
-            if (this._activeTab && !this.recentTabs.includes(this._activeTab)) {
+            if (this._activeTab) {
+                // Remove the tab from the list if it's already there
+                this.recentTabs = this.recentTabs.filter(t => t !== this._activeTab)
+                // Add it at the top of the list
                 this.recentTabs.unshift(this._activeTab)
                 // Keep only last 10 tabs in history
                 if (this.recentTabs.length > 10) {
