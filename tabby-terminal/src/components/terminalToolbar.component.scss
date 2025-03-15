@@ -1,24 +1,43 @@
 :host {
-    padding: 5px 15px 5px 15px;
     display: flex;
-    z-index: 3;
+    flex-direction: row;
+    height: 38px;
+    align-items: center;
+    padding: 5px 10px;
     overflow: hidden;
+    z-index: 5;
 
-    ::ng-deep .btn {
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        overflow: hidden;
+    .content {
+        display: flex;
+        flex-direction: row;
+        height: 100%;
+        flex-grow: 1;
+        align-items: center;
+    }
+
+    .drag-handle {
+        cursor: move;
+        margin-right: 10px;
+    }
+
+    button.btn {
+        display: flex;
+        align-items: center;
+        margin-right: 10px;
+        opacity: 0.5;
+
+        &:hover {
+            opacity: 1;
+        }
+
+        i + span {
+            margin-left: 8px;
+        }
     }
 }
 
-.content {
-    flex-grow: 1;
-    display: flex;
-    align-items: center;
-}
-
-.drag-handle {
-    margin: 0 10px 0 0;
-    cursor: move;
-    opacity: .3;
+::ng-deep .btn {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }

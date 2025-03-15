@@ -490,6 +490,13 @@ export class XTermFrontend extends Frontend {
         })
     }
 
+    /**
+     * Returns the entire buffer content as a string
+     */
+    getBufferText (): string {
+        return this.serializeAddon.serialize()
+    }
+
     restoreState (state: string): void {
         this.xterm.write(state)
     }

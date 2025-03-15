@@ -113,6 +113,14 @@ export class TerminalHotkeyProvider extends HotkeyProvider {
             id: 'disconnect-tab',
             name: this.translate.instant('Disconnect current tab (Serial/Telnet/SSH)'),
         },
+        {
+            id: 'toggle-terminal-input-sync',
+            name: 'Terminal sync input',
+        },
+        {
+            id: 'show-buffer-text-overlay',
+            name: 'Show buffer text overlay',
+        },
     ]
 
     constructor (private translate: TranslateService) { super() }

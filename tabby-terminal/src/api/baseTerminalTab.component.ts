@@ -4,6 +4,7 @@ import colors from 'ansi-colors'
 import { NgZone, OnInit, OnDestroy, Injector, ViewChild, HostBinding, Input, ElementRef, InjectFlags, Component } from '@angular/core'
 import { trigger, transition, style, animate, AnimationTriggerMetadata } from '@angular/animations'
 import { AppService, ConfigService, BaseTabComponent, HostAppService, HotkeysService, NotificationsService, Platform, LogService, Logger, TabContextMenuItemProvider, SplitTabComponent, SubscriptionContainer, MenuItemOptions, PlatformService, HostWindowService, ResettableTimeout, TranslateService, ThemesService } from 'tabby-core'
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
 
 import { BaseSession } from '../session'
 
@@ -14,6 +15,7 @@ import { TerminalDecorator } from './decorator'
 import { SearchPanelComponent } from '../components/searchPanel.component'
 import { MultifocusService } from '../services/multifocus.service'
 import { getTerminalBackgroundColor } from '../helpers'
+import { BufferTextOverlayComponent } from '../components/bufferTextOverlay.component'
 
 
 const INACTIVE_TAB_UNLOAD_DELAY = 1000 * 30
@@ -127,6 +129,7 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
     protected translate: TranslateService
     protected multifocus: MultifocusService
     protected themes: ThemesService
+    protected ngbModal: NgbModal
     // Deps end
 
     protected logger: Logger
@@ -206,6 +209,7 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
         this.translate = injector.get(TranslateService)
         this.multifocus = injector.get(MultifocusService)
         this.themes = injector.get(ThemesService)
+        this.ngbModal = injector.get(NgbModal)
 
         this.logger = this.log.create('baseTerminalTab')
         this.setTitle(this.translate.instant('Terminal'))
@@ -265,6 +269,9 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
                     break
                 case 'reset-zoom':
                     this.forEachFocusedTerminalPane(tab => tab.resetZoom())
+                    break
+                case 'show-buffer-text-overlay':
+                    this.showBufferTextOverlay()
                     break
                 case 'previous-word':
                     this.forEachFocusedTerminalPane(tab => {
@@ -915,5 +922,29 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
      */
     protected isSessionExplicitlyTerminated (): boolean {
         return false
+    }
+
+    /**
+     * Returns the entire buffer content as a string for easy copying
+     */
+    async getAllBufferText (): Promise<string> {
+        if (!this.frontend) {
+            return ''
+        }
+        return this.frontend instanceof XTermFrontend 
+            ? this.frontend.getBufferText()
+            : ''
+    }
+
+    /**
+     * Shows an overlay with all text from the terminal buffer for easy copying
+     */
+    async showBufferTextOverlay (): Promise<void> {
+        const text = await this.getAllBufferText()
+        const modal = this.ngbModal.open(BufferTextOverlayComponent, {
+            windowClass: 'buffer-text-overlay',
+            size: 'lg',
+        })
+        modal.componentInstance.text = text
     }
 }

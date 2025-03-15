@@ -19,6 +19,7 @@ import { LoginScriptsSettingsComponent } from './components/loginScriptsSettings
 import { TerminalToolbarComponent } from './components/terminalToolbar.component'
 import { ColorSchemeSelectorComponent } from './components/colorSchemeSelector.component'
 import { InputProcessingSettingsComponent } from './components/inputProcessingSettings.component'
+import { BufferTextOverlayComponent } from './components/bufferTextOverlay.component'
 import { ColorSchemeSettingsForModeComponent } from './components/colorSchemeSettingsForMode.component'
 
 import { TerminalDecorator } from './api/decorator'
@@ -73,10 +74,11 @@ import { DefaultColorSchemes } from './colorSchemes'
         ColorSchemeSettingsTabComponent,
         TerminalSettingsTabComponent,
         SearchPanelComponent,
-        StreamProcessingSettingsComponent,
-        LoginScriptsSettingsComponent,
         TerminalToolbarComponent,
+        StreamProcessingSettingsComponent,
         InputProcessingSettingsComponent,
+        LoginScriptsSettingsComponent,
+        BufferTextOverlayComponent,
         ColorSchemeSettingsForModeComponent,
     ],
     exports: [
@@ -88,6 +90,9 @@ import { DefaultColorSchemes } from './colorSchemes'
         TerminalToolbarComponent,
         InputProcessingSettingsComponent,
     ],
+    entryComponents: [
+        BufferTextOverlayComponent,
+    ]
 })
 export default class TerminalModule { } // eslint-disable-line @typescript-eslint/no-extraneous-class
 

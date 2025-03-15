@@ -39,4 +39,8 @@ export class TerminalToolbarComponent {
     @HostListener('mouseleave') onMouseLeave () {
         this.tab.hideToolbar()
     }
+
+    showBufferTextOverlay(): void {
+        this.tab.showBufferTextOverlay()
+    }
 }
