@@ -34,7 +34,7 @@ export class SSHTabComponent extends ConnectableTerminalTabComponent<SSHProfile>
     constructor (
         injector: Injector,
         public ssh: SSHService,
-        private ngbModal: NgbModal,
+        protected ngbModal: NgbModal,
         private profilesService: ProfilesService,
         private sshMultiplexer: SSHMultiplexerService,
     ) {

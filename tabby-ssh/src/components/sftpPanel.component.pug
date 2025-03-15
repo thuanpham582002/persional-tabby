@@ -15,7 +15,26 @@
             (click)='navigate(segment.path)'
         ) {{segment.name}}
 
-    .breadcrumb-spacer.flex-grow-1.h-100((dblclick)='editPath()')
+    .breadcrumb-spacer.flex-grow-1.h-100.d-none.d-lg-block((dblclick)='editPath()')
+
+    .download-info.d-flex.align-items-center.mx-2(*ngIf='isDownloading')
+        .progress.flex-grow-1(style='width: 200px; height: 10px')
+            .progress-bar.bg-info(role='progressbar', [style.width.%]='(downloadProgress.completed / downloadProgress.total) * 100')
+        small.ms-2 {{downloadProgress.completed}}/{{downloadProgress.total}}
+        small.ms-2.text-truncate(style='max-width: 150px') {{downloadProgress.currentFile}}
+        button.btn.btn-sm.btn-danger.ms-2((click)='cancelDownloadProcess()')
+            i.fas.fa-times
+            span.ms-1 Cancel
+
+    .input-group.flex-shrink-0.mx-2(style='max-width: 250px;', *ngIf='!isDownloading')
+        input.form-control(
+            type='text',
+            placeholder='Enter directory path',
+            [(ngModel)]='directoryInput',
+            (keydown.enter)='navigateToInput()'
+        )
+        button.btn.btn-primary((click)='navigateToInput()')
+            i.fas.fa-arrow-right
 
     button.btn.btn-link.btn-sm.flex-shrink-0.d-flex((click)='openCreateDirectoryModal()')
         i.fas.fa-plus.me-1
@@ -28,6 +47,14 @@
     button.btn.btn-link.btn-sm.flex-shrink-0.d-flex((click)='uploadFolder()')
         i.fas.fa-upload.me-1
         div(translate) Upload folder
+
+    button.btn.btn-link.btn-sm.flex-shrink-0.d-flex((click)='downloadFolder()', *ngIf='path !== "/"')
+        i.fas.fa-download.me-1
+        div(translate) Download folder
+
+    button.btn.btn-link.btn-sm.flex-shrink-0.d-flex((click)='downloadFolderAsZip()', *ngIf='path !== "/"')
+        i.fas.fa-file-archive.me-1
+        div(translate) Download as ZIP
 
     button.btn.btn-link.text-decoration-none((click)='close()') !{require('../../../tabby-core/src/icons/times.svg')}
 
