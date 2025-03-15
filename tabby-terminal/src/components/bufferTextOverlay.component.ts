@@ -11,11 +11,11 @@ import { HotkeysService } from 'tabby-core'
             <button type="button" class="btn-close" (click)="close()"></button>
         </div>
         <div class="modal-body">
-            <textarea #textArea class="form-control" autofocus [value]="displayText" (focus)="pauseHotkeys()"></textarea>
+            <textarea #textArea class="form-control" autofocus [(ngModel)]="displayText" (focus)="pauseHotkeys()"></textarea>
         </div>
         <div class="modal-footer">
             <div class="form-check me-auto">
-                <input class="form-check-input" type="checkbox" id="stripAnsi" [(ngModel)]="stripAnsiEnabled" (change)="updateDisplayText()">
+                <input class="form-check-input" type="checkbox" id="stripAnsi" [(ngModel)]="stripAnsiEnabled" (change)="onStripAnsiToggle()">
                 <label class="form-check-label" for="stripAnsi">
                     Strip ANSI codes
                 </label>
@@ -56,7 +56,18 @@ export class BufferTextOverlayComponent implements AfterViewInit, OnChanges, Aft
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes.text) {
+            // Save any existing user edits before updating
+            const userText = this.textAreaRef?.nativeElement ? this.preserveUserEdits() : null
+            
             this.updateDisplayText()
+            
+            // If we had user edits and they weren't caused by strip toggle, restore them
+            if (userText && !changes.stripAnsiEnabled) {
+                setTimeout(() => {
+                    this.displayText = userText
+                }, 0)
+            }
+            
             this.needsScrollToBottom = true
         }
     }
@@ -145,6 +156,12 @@ export class BufferTextOverlayComponent implements AfterViewInit, OnChanges, Aft
         }
     }
 
+    // Save any user edits before updating the display text
+    preserveUserEdits(): string {
+        // Store the current edited text if it exists
+        return this.textAreaRef?.nativeElement ? this.textAreaRef.nativeElement.value : this.displayText
+    }
+
     /**
      * Strips ANSI escape sequences from text
      */
@@ -186,12 +203,21 @@ export class BufferTextOverlayComponent implements AfterViewInit, OnChanges, Aft
     }
 
     async copyText(): Promise<void> {
-        this.textAreaRef.nativeElement.select()
-        await navigator.clipboard.writeText(this.displayText)
+        // Copy the current text from the textarea (which may include user edits)
+        const currentText = this.textAreaRef.nativeElement.value
+        await navigator.clipboard.writeText(currentText)
     }
 
     close(): void {
         this.resumeHotkeys()
         this.activeModal.close()
+    }
+
+    /**
+     * Handle checkbox toggle for ANSI stripping
+     */
+    onStripAnsiToggle(): void {
+        // When toggling, we want to reset to the processed text
+        this.updateDisplayText()
     }
 } 

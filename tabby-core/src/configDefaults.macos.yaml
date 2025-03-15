@@ -75,6 +75,8 @@ hotkeys:
     - '⌘-⌥-['
   pane-nav-next:
     - '⌘-⌥-]'
+  show-buffer-text-overlay:
+    - 'Ctrl-Shift-O'
   pane-nav-1: []
   pane-nav-2: []
   pane-nav-3: []
