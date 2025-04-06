@@ -8,6 +8,10 @@ import { SFTPContextMenuItemProvider } from '../api'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
 import { SFTPCreateDirectoryModalComponent } from './sftpCreateDirectoryModal.component'
 import JSZip from 'jszip'
+import { DownloadFilterConfig, SFTPDownloadFilterModalComponent } from './sftpDownloadFilterModal.component'
+
+// Key cho localStorage - phải khớp với STORAGE_KEY trong sftpDownloadFilterModal.component.ts
+const STORAGE_KEY = 'tabby-sftp-download-filter-config'
 
 interface PathSegment {
     name: string
@@ -313,6 +317,34 @@ export class SFTPPanelComponent {
         }
     }
 
+    /**
+     * Tải cấu hình bộ lọc từ localStorage hoặc trả về cấu hình mặc định nếu không có
+     */
+    private getFilterConfigFromStorage(): DownloadFilterConfig {
+        try {
+            const savedConfig = window.localStorage.getItem(STORAGE_KEY)
+            if (savedConfig) {
+                const parsedConfig = JSON.parse(savedConfig) as DownloadFilterConfig
+                return {
+                    includePatterns: parsedConfig.includePatterns || [],
+                    excludePatterns: parsedConfig.excludePatterns || [],
+                    recursive: parsedConfig.recursive !== undefined ? parsedConfig.recursive : true,
+                    skipEmptyFolders: parsedConfig.skipEmptyFolders !== undefined ? parsedConfig.skipEmptyFolders : true,
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load filter config from localStorage:', error)
+        }
+        
+        // Cấu hình mặc định nếu không tìm thấy trong localStorage
+        return {
+            includePatterns: [],
+            excludePatterns: [],
+            recursive: true,
+            skipEmptyFolders: true
+        }
+    }
+
     async downloadFolder (): Promise<void> {
         try {
             // Hiển thị hộp thoại xác nhận
@@ -323,13 +355,28 @@ export class SFTPPanelComponent {
                 buttons: [
                     'Select folder',
                     'Cancel',
+                    'Configure Filter'
                 ],
                 defaultId: 0,
                 cancelId: 1,
             })
             
-            if (result.response !== 0) {
+            if (result.response === 1) { // Cancel
                 return
+            }
+            
+            // Nếu người dùng chọn "Configure Filter", hiển thị dialog cấu hình
+            // Nếu không, sử dụng cấu hình từ localStorage
+            let filterConfig: DownloadFilterConfig = this.getFilterConfigFromStorage()
+            
+            if (result.response === 2) { // Configure Filter
+                const filterModal = this.ngbModal.open(SFTPDownloadFilterModalComponent, { size: 'lg' })
+                try {
+                    filterConfig = await filterModal.result
+                } catch {
+                    // Người dùng đã cancel modal
+                    return
+                }
             }
             
             // Sử dụng PlatformService để chọn thư mục đích
@@ -348,15 +395,15 @@ export class SFTPPanelComponent {
             
             this.notifications.info('Downloading folder, please wait...')
             
-            // Tính tổng số file cần tải xuống
-            await this.countFilesRecursive(this.path)
+            // Tính tổng số file cần tải xuống (dựa trên bộ lọc)
+            await this.countFilesRecursive(this.path, filterConfig)
             
             // Lấy danh sách tất cả các file trong thư mục hiện tại
             const files = await this.sftp.readdir(this.path)
             
             try {
                 // Đệ quy tải xuống thư mục và tất cả nội dung của nó
-                await this.downloadFolderRecursive(this.path, targetDirectory, files)
+                await this.downloadFolderRecursive(this.path, targetDirectory, files, filterConfig)
                 
                 if (this.cancelDownload) {
                     this.notifications.info('Download canceled')
@@ -379,15 +426,19 @@ export class SFTPPanelComponent {
         this.notifications.info('Canceling download, please wait...')
     }
     
-    async countFilesRecursive (remotePath: string): Promise<number> {
+    async countFilesRecursive (remotePath: string, filterConfig: DownloadFilterConfig = { includePatterns: [], excludePatterns: [], recursive: true, skipEmptyFolders: true }): Promise<number> {
         let count = 0
         const files = await this.sftp.readdir(remotePath)
         
         for (const file of files) {
             if (file.isDirectory) {
-                count += await this.countFilesRecursive(path.join(remotePath, file.name))
+                if (filterConfig.recursive) {
+                    count += await this.countFilesRecursive(path.join(remotePath, file.name), filterConfig)
+                }
             } else {
-                count++
+                if (this.matchesFilter(path.join(remotePath, file.name), filterConfig)) {
+                    count++
+                }
             }
         }
         
@@ -395,13 +446,46 @@ export class SFTPPanelComponent {
         return count
     }
     
-    async downloadFolderRecursive (remotePath: string, localPath: string, items?: SFTPFile[]): Promise<void> {
+    async downloadFolderRecursive (remotePath: string, localPath: string, items?: SFTPFile[], filterConfig: DownloadFilterConfig = { includePatterns: [], excludePatterns: [], recursive: true, skipEmptyFolders: true }): Promise<void> {
         if (this.cancelDownload) {
             return
         }
         
         const files = items || await this.sftp.readdir(remotePath)
         
+        // Đếm số file sẽ được tải trong thư mục hiện tại
+        let filesCount = 0
+        const subfolders: SFTPFile[] = []
+        
+        // Đầu tiên, đếm các file sẽ được tải trong thư mục hiện tại và liệt kê các thư mục con
+        for (const file of files) {
+            if (this.cancelDownload) {
+                return
+            }
+            
+            const remoteFilePath = path.join(remotePath, file.name)
+            
+            if (file.isDirectory) {
+                if (filterConfig.recursive) {
+                    subfolders.push(file)
+                }
+            } else {
+                if (this.matchesFilter(remoteFilePath, filterConfig)) {
+                    filesCount++
+                }
+            }
+        }
+        
+        // Tạo thư mục hiện tại chỉ khi có file để tải hoặc không bỏ qua thư mục trống
+        if (filesCount > 0 || !filterConfig.skipEmptyFolders) {
+            // Tạo thư mục trên máy tính cục bộ
+            const fs = (window as any).require('fs')
+            if (!fs.existsSync(localPath)) {
+                fs.mkdirSync(localPath, { recursive: true })
+            }
+        }
+        
+        // Tải các file trong thư mục hiện tại
         for (const file of files) {
             if (this.cancelDownload) {
                 return
@@ -410,19 +494,18 @@ export class SFTPPanelComponent {
             const remoteFilePath = path.join(remotePath, file.name)
             const localFilePath = path.join(localPath, file.name)
             
-            if (file.isDirectory) {
-                // Tạo thư mục con trên máy tính cục bộ
-                const fs = (window as any).require('fs')
-                if (!fs.existsSync(localFilePath)) {
-                    fs.mkdirSync(localFilePath, { recursive: true })
-                }
-                
-                // Tải xuống nội dung của thư mục con
-                await this.downloadFolderRecursive(remoteFilePath, localFilePath)
-            } else {
+            if (!file.isDirectory && this.matchesFilter(remoteFilePath, filterConfig)) {
                 // Tải xuống file
                 try {
                     this.downloadProgress.currentFile = file.name
+                    
+                    // Đảm bảo thư mục cha đã được tạo (trong trường hợp filesCount = 0 và skipEmptyFolders = true)
+                    const fs = (window as any).require('fs')
+                    const parentDir = path.dirname(localFilePath)
+                    if (!fs.existsSync(parentDir)) {
+                        fs.mkdirSync(parentDir, { recursive: true })
+                    }
+                    
                     const transfer = await this.platform.startDownload(file.name, file.mode, file.size)
                     if (transfer) {
                         await new Promise<void>((resolve) => {
@@ -459,6 +542,19 @@ export class SFTPPanelComponent {
                 }
             }
         }
+        
+        // Xử lý các thư mục con
+        for (const subfolder of subfolders) {
+            if (this.cancelDownload) {
+                return
+            }
+            
+            const remoteSubPath = path.join(remotePath, subfolder.name)
+            const localSubPath = path.join(localPath, subfolder.name)
+            
+            // Đệ quy vào thư mục con
+            await this.downloadFolderRecursive(remoteSubPath, localSubPath, [], filterConfig)
+        }
     }
 
     async downloadFolderAsZip (): Promise<void> {
@@ -471,13 +567,28 @@ export class SFTPPanelComponent {
                 buttons: [
                     'Select location',
                     'Cancel',
+                    'Configure Filter'
                 ],
                 defaultId: 0,
                 cancelId: 1,
             })
             
-            if (result.response !== 0) {
+            if (result.response === 1) { // Cancel
                 return
+            }
+            
+            // Nếu người dùng chọn "Configure Filter", hiển thị dialog cấu hình
+            // Nếu không, sử dụng cấu hình từ localStorage
+            let filterConfig: DownloadFilterConfig = this.getFilterConfigFromStorage()
+            
+            if (result.response === 2) { // Configure Filter
+                const filterModal = this.ngbModal.open(SFTPDownloadFilterModalComponent, { size: 'lg' })
+                try {
+                    filterConfig = await filterModal.result
+                } catch {
+                    // Người dùng đã cancel modal
+                    return
+                }
             }
             
             // Sử dụng PlatformService để chọn vị trí lưu file ZIP
@@ -490,7 +601,43 @@ export class SFTPPanelComponent {
             
             // Tạo đường dẫn đầy đủ cho file ZIP
             const fs = (window as any).require('fs')
-            const zipFilePath = path.join(targetFile, `${folderName}.zip`)
+            let zipFilePath = path.join(targetFile, `${folderName}.zip`)
+            
+            // Kiểm tra xem file ZIP đã tồn tại chưa
+            if (fs.existsSync(zipFilePath)) {
+                // Hiển thị hộp thoại xác nhận
+                const fileExistsResult = await this.platform.showMessageBox({
+                    type: 'warning',
+                    message: 'File already exists',
+                    detail: `The file "${zipFilePath}" already exists. What would you like to do?`,
+                    buttons: [
+                        'Replace file',
+                        'Keep both (rename new file)',
+                        'Cancel'
+                    ],
+                    defaultId: 0,
+                    cancelId: 2,
+                })
+                
+                if (fileExistsResult.response === 2) { // Cancel
+                    return
+                }
+                
+                if (fileExistsResult.response === 1) { // Keep both
+                    // Tạo tên file mới
+                    let counter = 1
+                    const baseNameWithoutExt = folderName
+                    const ext = '.zip'
+                    let newFileName
+                    
+                    do {
+                        newFileName = `${baseNameWithoutExt} (${counter})${ext}`
+                        zipFilePath = path.join(targetFile, newFileName)
+                        counter++
+                    } while (fs.existsSync(zipFilePath))
+                }
+                // Nếu response === 0 thì sẽ ghi đè (Replace)
+            }
             
             this.isDownloading = true
             this.cancelDownload = false
@@ -502,14 +649,14 @@ export class SFTPPanelComponent {
             
             this.notifications.info('Creating ZIP archive, please wait...')
             
-            // Tính tổng số file cần thêm vào zip
-            await this.countFilesRecursive(this.path)
+            // Tính tổng số file cần thêm vào zip (dựa trên bộ lọc)
+            await this.countFilesRecursive(this.path, filterConfig)
             
             // Tạo đối tượng ZIP
             const zip = new JSZip()
             
             // Thêm các file vào ZIP
-            await this.addFolderToZip(zip, this.path, '')
+            await this.addFolderToZip(zip, this.path, '', filterConfig)
             
             if (this.cancelDownload) {
                 this.notifications.info('ZIP creation canceled')
@@ -537,7 +684,7 @@ export class SFTPPanelComponent {
             // Lưu file ZIP
             fs.writeFileSync(zipFilePath, zipContent)
             
-            this.notifications.notice('ZIP archive created successfully')
+            this.notifications.notice(`ZIP archive created successfully: ${path.basename(zipFilePath)}`)
         } catch (error) {
             this.notifications.error(`Failed to create ZIP archive: ${error.message}`)
         } finally {
@@ -546,62 +693,185 @@ export class SFTPPanelComponent {
         }
     }
 
-    async addFolderToZip (zip: JSZip, remotePath: string, zipPath: string): Promise<void> {
+    async addFolderToZip (zip: JSZip, remotePath: string, zipPath: string, filterConfig: DownloadFilterConfig): Promise<void> {
         if (this.cancelDownload) {
             return
         }
         
         const files = await this.sftp.readdir(remotePath)
+        const subfolders: SFTPFile[] = []
         
+        // Liệt kê các thư mục con và tìm kiếm file phù hợp
+        let hasMatchingFiles = false
+        
+        // Đầu tiên, kiểm tra các file trong thư mục hiện tại
         for (const file of files) {
             if (this.cancelDownload) {
                 return
             }
             
             const remoteFilePath = path.join(remotePath, file.name)
-            const zipFilePath = zipPath ? path.join(zipPath, file.name) : file.name
-            
-            this.downloadProgress.currentFile = file.name
             
             if (file.isDirectory) {
-                // Tạo thư mục trong ZIP
-                const folder = zip.folder(zipFilePath)
-                if (folder) {
-                    // Thêm nội dung của thư mục con vào ZIP
-                    await this.addFolderToZip(zip, remoteFilePath, zipFilePath)
+                if (filterConfig.recursive) {
+                    subfolders.push(file)
                 }
             } else {
-                try {
-                    // Tạo một transfer để tải file về trước khi thêm vào ZIP
-                    const tempBuffer: Buffer[] = []
-                    
-                    // Tải file từ SFTP
-                    const handle = await this.sftp.open(remoteFilePath, 0)
-                    while (true) {
-                        const chunk = await handle.read()
-                        if (!chunk.length) {
-                            break
-                        }
-                        tempBuffer.push(Buffer.from(chunk))
-                    }
-                    await handle.close()
-                    
-                    // Ghép các phần của file
-                    const fileContent = Buffer.concat(tempBuffer)
-                    
-                    // Thêm file vào ZIP
-                    zip.file(zipFilePath, fileContent)
-                    
-                    // Cập nhật tiến trình
-                    this.downloadProgress.completed++
-                } catch (error) {
-                    if (this.cancelDownload) {
-                        return
-                    }
-                    console.error(`Error adding ${remoteFilePath} to ZIP:`, error)
-                    throw error
+                if (this.matchesFilter(remoteFilePath, filterConfig)) {
+                    hasMatchingFiles = true
+                    // Không cần dừng vòng lặp, vì chúng ta cần thu thập tất cả các thư mục con
                 }
             }
         }
+        
+        // Thêm các file vào ZIP nếu có file phù hợp hoặc không bỏ qua thư mục trống
+        if (hasMatchingFiles || !filterConfig.skipEmptyFolders) {
+            for (const file of files) {
+                if (this.cancelDownload) {
+                    return
+                }
+                
+                const remoteFilePath = path.join(remotePath, file.name)
+                const zipFilePath = zipPath ? path.join(zipPath, file.name) : file.name
+                
+                this.downloadProgress.currentFile = file.name
+                
+                if (!file.isDirectory && this.matchesFilter(remoteFilePath, filterConfig)) {
+                    try {
+                        // Tạo một transfer để tải file về trước khi thêm vào ZIP
+                        const tempBuffer: Buffer[] = []
+                        
+                        // Tải file từ SFTP
+                        const handle = await this.sftp.open(remoteFilePath, 0)
+                        while (true) {
+                            const chunk = await handle.read()
+                            if (!chunk.length) {
+                                break
+                            }
+                            tempBuffer.push(Buffer.from(chunk))
+                        }
+                        await handle.close()
+                        
+                        // Ghép các phần của file
+                        const fileContent = Buffer.concat(tempBuffer)
+                        
+                        // Thêm file vào ZIP
+                        zip.file(zipFilePath, fileContent)
+                        
+                        // Cập nhật tiến trình
+                        this.downloadProgress.completed++
+                    } catch (error) {
+                        if (this.cancelDownload) {
+                            return
+                        }
+                        console.error(`Error adding ${remoteFilePath} to ZIP:`, error)
+                        throw error
+                    }
+                }
+            }
+        }
+        
+        // Xử lý các thư mục con
+        for (const subfolder of subfolders) {
+            if (this.cancelDownload) {
+                return
+            }
+            
+            const remoteSubPath = path.join(remotePath, subfolder.name)
+            const zipSubPath = zipPath ? path.join(zipPath, subfolder.name) : subfolder.name
+            
+            // Chỉ tạo thư mục và đệ quy vào thư mục con nếu không bỏ qua thư mục trống
+            // hoặc thư mục có file cần tải
+            const subFiles = await this.sftp.readdir(remoteSubPath)
+            let hasSubMatchingFiles = false
+            
+            // Kiểm tra xem thư mục con có chứa file phù hợp với bộ lọc không
+            for (const subFile of subFiles) {
+                if (!subFile.isDirectory) {
+                    const subFilePath = path.join(remoteSubPath, subFile.name)
+                    if (this.matchesFilter(subFilePath, filterConfig)) {
+                        hasSubMatchingFiles = true
+                        break
+                    }
+                }
+            }
+            
+            // Tìm kiếm đệ quy trong các thư mục con (nếu recursive)
+            if (!hasSubMatchingFiles && filterConfig.recursive) {
+                for (const subFile of subFiles) {
+                    if (subFile.isDirectory) {
+                        const subDirPath = path.join(remoteSubPath, subFile.name)
+                        const subDirFiles = await this.sftp.readdir(subDirPath)
+                        for (const subDirFile of subDirFiles) {
+                            if (!subDirFile.isDirectory) {
+                                const subDirFilePath = path.join(subDirPath, subDirFile.name)
+                                if (this.matchesFilter(subDirFilePath, filterConfig)) {
+                                    hasSubMatchingFiles = true
+                                    break
+                                }
+                            }
+                        }
+                        if (hasSubMatchingFiles) break;
+                    }
+                }
+            }
+            
+            // Chỉ đệ quy vào thư mục con nếu có file phù hợp hoặc không bỏ qua thư mục trống
+            if (hasSubMatchingFiles || !filterConfig.skipEmptyFolders) {
+                // Đệ quy vào thư mục con
+                await this.addFolderToZip(zip, remoteSubPath, zipSubPath, filterConfig)
+            }
+        }
+    }
+
+    /**
+     * Kiểm tra xem một file có khớp với các mẫu (patterns) trong filter không
+     * @param filePath Đường dẫn của file cần kiểm tra
+     * @param filterConfig Cấu hình bộ lọc
+     * @returns true nếu file khớp với bộ lọc (nên được tải), false nếu không
+     */
+    private matchesFilter(filePath: string, filterConfig: DownloadFilterConfig): boolean {
+        // Lấy tên file tương đối so với thư mục gốc đang download
+        const fileName = path.basename(filePath);
+        
+        // Nếu không có include patterns, mọi file đều được chấp nhận ban đầu
+        let included = filterConfig.includePatterns.length === 0;
+        
+        // Nếu có include patterns, kiểm tra xem file có khớp với bất kỳ pattern nào không
+        for (const pattern of filterConfig.includePatterns) {
+            if (this.matchPattern(filePath, pattern) || this.matchPattern(fileName, pattern)) {
+                included = true;
+                break;
+            }
+        }
+        
+        // Nếu file không nằm trong danh sách include, bỏ qua
+        if (!included) {
+            return false;
+        }
+        
+        // Kiểm tra xem file có bị loại trừ bởi bất kỳ exclude pattern nào không
+        for (const pattern of filterConfig.excludePatterns) {
+            if (this.matchPattern(filePath, pattern) || this.matchPattern(fileName, pattern)) {
+                return false;
+            }
+        }
+        
+        // File đã vượt qua tất cả các kiểm tra lọc
+        return true;
+    }
+    
+    /**
+     * So khớp một chuỗi với một pattern kiểu glob (hỗ trợ wildcard * và ?)
+     */
+    private matchPattern(text: string, pattern: string): boolean {
+        // Chuyển đổi pattern glob thành regex
+        const regexPattern = pattern
+            .replace(/\./g, '\\.')   // Escape dấu chấm
+            .replace(/\*/g, '.*')    // * -> .*
+            .replace(/\?/g, '.');    // ? -> .
+        
+        const regex = new RegExp(`^${regexPattern}$`, 'i');  // 'i' cho case-insensitive
+        return regex.test(text);
     }
 }

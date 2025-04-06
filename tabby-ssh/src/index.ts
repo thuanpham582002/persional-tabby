@@ -17,6 +17,8 @@ import { SFTPPanelComponent } from './components/sftpPanel.component'
 import { SFTPDeleteModalComponent } from './components/sftpDeleteModal.component'
 import { KeyboardInteractiveAuthComponent } from './components/keyboardInteractiveAuthPanel.component'
 import { HostKeyPromptModalComponent } from './components/hostKeyPromptModal.component'
+import { SFTPCreateDirectoryModalComponent } from './components/sftpCreateDirectoryModal.component'
+import { SFTPDownloadFilterModalComponent } from './components/sftpDownloadFilterModal.component'
 
 import { SSHConfigProvider } from './config'
 import { SSHSettingsTabProvider } from './settings'
@@ -26,7 +28,6 @@ import { SFTPContextMenu } from './tabContextMenu'
 import { SSHProfilesService } from './profiles'
 import { SFTPContextMenuItemProvider } from './api/contextMenu'
 import { CommonSFTPContextMenu } from './sftpContextMenu'
-import { SFTPCreateDirectoryModalComponent } from './components/sftpCreateDirectoryModal.component'
 
 /** @hidden */
 @NgModule({
@@ -59,6 +60,7 @@ import { SFTPCreateDirectoryModalComponent } from './components/sftpCreateDirect
         SFTPPanelComponent,
         KeyboardInteractiveAuthComponent,
         HostKeyPromptModalComponent,
+        SFTPDownloadFilterModalComponent,
     ],
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class

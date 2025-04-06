@@ -25,7 +25,7 @@ ln -s ../../node_modules/electron app/node_modules
 # Build macOS packages
 node scripts/build-macos.mjs
 
-# Create artifact directories and move files
-mkdir -p artifact-dmg artifact-zip
-mv dist/*.dmg artifact-dmg/
-mv dist/*.zip artifact-zip/
+# # Create artifact directories and move files
+# mkdir -p artifact-dmg artifact-zip
+# mv dist/*.dmg artifact-dmg/
+# mv dist/*.zip artifact-zip/

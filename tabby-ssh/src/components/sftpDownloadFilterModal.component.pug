@@ -1,0 +1,71 @@
+.modal-header
+    h5.modal-title Download Filter Configuration
+    button.btn-close((click)='cancel()')
+
+.modal-body
+    .form-group.mb-3
+        label.form-label Include Patterns (Match these files)
+        .mb-2
+            small.text-muted Examples: *.txt, *.jpg, documents/*, report*.pdf
+        .input-group.mb-2
+            input.form-control(
+                type='text', 
+                [(ngModel)]='includeInput', 
+                placeholder='Enter pattern to include', 
+                (keydown.enter)='addIncludePattern()'
+            )
+            button.btn.btn-primary((click)='addIncludePattern()')
+                i.fas.fa-plus
+        
+        .mb-2
+            small.text-muted Leave empty to include all files
+        
+        .pattern-list.mb-3(*ngIf='config.includePatterns.length')
+            .pattern-item.d-flex.align-items-center.mb-1(*ngFor='let pattern of config.includePatterns')
+                .badge.bg-primary.me-2
+                    span {{pattern}}
+                    button.btn.btn-sm.ms-2((click)='removeIncludePattern(pattern)')
+                        i.fas.fa-times
+    
+    .form-group.mb-3
+        label.form-label Exclude Patterns (Skip these files)
+        .mb-2
+            small.text-muted Examples: *.bak, .git/*, node_modules/*, .*
+        .input-group.mb-2
+            input.form-control(
+                type='text', 
+                [(ngModel)]='excludeInput', 
+                placeholder='Enter pattern to exclude', 
+                (keydown.enter)='addExcludePattern()'
+            )
+            button.btn.btn-primary((click)='addExcludePattern()')
+                i.fas.fa-plus
+        
+        .pattern-list.mb-3(*ngIf='config.excludePatterns.length')
+            .pattern-item.d-flex.align-items-center.mb-1(*ngFor='let pattern of config.excludePatterns')
+                .badge.bg-danger.me-2
+                    span {{pattern}}
+                    button.btn.btn-sm.ms-2((click)='removeExcludePattern(pattern)')
+                        i.fas.fa-times
+    
+    .form-check.mb-2
+        input.form-check-input(
+            type='checkbox', 
+            id='recursiveCheckbox', 
+            [(ngModel)]='config.recursive', 
+            (change)='onRecursiveChange()'
+        )
+        label.form-check-label(for='recursiveCheckbox') Download recursively (include sub-directories)
+    
+    .form-check
+        input.form-check-input(
+            type='checkbox', 
+            id='skipEmptyFoldersCheckbox', 
+            [(ngModel)]='config.skipEmptyFolders', 
+            (change)='onSkipEmptyFoldersChange()'
+        )
+        label.form-check-label(for='skipEmptyFoldersCheckbox') Skip empty folders (don't create empty directories)
+
+.modal-footer
+    button.btn.btn-primary((click)='save()') OK 
+    button.btn.btn-secondary((click)='cancel()') Cancel 
