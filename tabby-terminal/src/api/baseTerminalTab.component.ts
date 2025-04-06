@@ -16,7 +16,7 @@ import { SearchPanelComponent } from '../components/searchPanel.component'
 import { MultifocusService } from '../services/multifocus.service'
 import { getTerminalBackgroundColor } from '../helpers'
 import { BufferTextOverlayComponent } from '../components/bufferTextOverlay.component'
-
+import stripAnsi from 'strip-ansi'
 
 const INACTIVE_TAB_UNLOAD_DELAY = 1000 * 30
 
@@ -945,6 +945,6 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
             windowClass: 'buffer-text-overlay',
             size: 'lg',
         })
-        modal.componentInstance.text = text
+        modal.componentInstance.text = stripAnsi(text)
     }
 }

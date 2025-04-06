@@ -1,4 +1,4 @@
-import { Component, Input, ElementRef, ViewChild, AfterViewInit, OnChanges, SimpleChanges, AfterViewChecked, HostListener } from '@angular/core'
+import { Component, Input, ElementRef, ViewChild, AfterViewInit, OnChanges, SimpleChanges, AfterViewChecked, HostListener, OnDestroy } from '@angular/core'
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap'
 import { HotkeysService, NotificationsService } from 'tabby-core'
 
@@ -29,12 +29,6 @@ import { HotkeysService, NotificationsService } from 'tabby-core'
                         <button type="button" class="btn btn-sm btn-secondary" (click)="saveCurrentState()">
                             <i class="fas fa-save"></i> Save State
                         </button>
-                    </div>
-                    <div class="form-check form-switch ms-auto">
-                        <input class="form-check-input" type="checkbox" id="stripAnsi" [(ngModel)]="stripAnsiEnabled" (change)="onStripAnsiToggle()">
-                        <label class="form-check-label" for="stripAnsi">
-                            Strip ANSI codes
-                        </label>
                     </div>
                 </div>
             </div>
@@ -67,7 +61,7 @@ import { HotkeysService, NotificationsService } from 'tabby-core'
         }
     `],
 })
-export class BufferTextOverlayComponent implements AfterViewInit, OnChanges, AfterViewChecked {
+export class BufferTextOverlayComponent implements AfterViewInit, OnChanges, AfterViewChecked, OnDestroy {
     @Input() text = ''
     plainText = ''
     displayText = ''
@@ -250,47 +244,7 @@ export class BufferTextOverlayComponent implements AfterViewInit, OnChanges, Aft
     }
 
     updateDisplayText(): void {
-        if (this.stripAnsiEnabled) {
-            this.plainText = this.stripANSI(this.text)
-            // If stripping made text empty, use original text as fallback
-            this.displayText = this.plainText.trim() ? this.plainText : this.text
-        } else {
             this.displayText = this.text
-        }
-    }
-
-    /**
-     * Strips ANSI escape sequences from text
-     */
-    stripANSI(text: string): string {
-        if (!text) return ''
-        
-        // A simpler approach that preserves the actual text content
-        // First, replace terminal commands that should be newlines
-        let result = text
-            // Add proper newline after command sequences like "vi filename"
-            .replace(/\$ ([a-z]+) ([^\n]+)([^\n]*)\x1B\[\?1049h/g, '$ $1 $2\n')
-            
-            // Handle ESC sequences
-            .replace(/\x1B\[\?[0-9;]*[a-zA-Z]/g, '')    // Private mode sequences like [?1049h
-            .replace(/\x1B\[[0-9;]*[A-Za-z]/g, '')     // CSI sequences
-            .replace(/\x1B\][^\x07]*\x07/g, '')        // OSC sequences
-            .replace(/\x1B[@A-Z\\^_`a-z{|}~]/g, '')    // Other ESC sequences
-            
-            // Handle terminal control sequences without the ESC prefix
-            // These often appear after an ESC sequence was partially stripped
-            .replace(/\[[\d;]*[A-Za-z]/g, '')         // Control sequences like [1B, [71D, etc.
-            
-            // Remove remaining control characters
-            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-        
-        // Fix common issues that occur after stripping
-        result = result
-            // Fix text that was merged due to lost newlines
-            .replace(/\$ ([a-z]+) ([^ ]+)([^ ]*)version:/g, '$ $1 $2\nversion:')
-            .replace(/([a-z]+)version:/g, '$1\nversion:')
-        
-        return result
     }
 
     // Save any user edits before updating the display text
@@ -317,15 +271,7 @@ export class BufferTextOverlayComponent implements AfterViewInit, OnChanges, Aft
         this.activeModal.close()
     }
 
-    /**
-     * Handle checkbox toggle for ANSI stripping
-     */
-    onStripAnsiToggle(): void {
-        // When toggling, we want to reset to the processed text
-        this.updateDisplayText()
-        
-        // Add this state change to history
-        this.history.push(this.displayText)
-        this.historyIndex = this.history.length - 1
+    ngOnDestroy(): void {
+        this.resumeHotkeys()
     }
 } 
