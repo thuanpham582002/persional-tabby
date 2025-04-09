@@ -65,7 +65,6 @@ export class BufferTextOverlayComponent implements AfterViewInit, OnChanges, Aft
     @Input() text = ''
     plainText = ''
     displayText = ''
-    stripAnsiEnabled = true
     @ViewChild('textArea') textAreaRef: ElementRef<HTMLTextAreaElement>
     private scrollAttempts = 0
     private maxScrollAttempts = 5
