@@ -12,10 +12,10 @@
   resolved "https://registry.yarnpkg.com/@xterm/addon-fit/-/addon-fit-0.9.0.tgz#29846f08782c51ad85b949528c45b84ad4ec45d7"
   integrity sha512-hDlPPbTVPYyvwXu/asW8HbJkI/2RMi0cMaJnBZYVeJB0SWP2NeESMCNr+I7CvBlyI0sAxpxOg8Wk4OMkxBz9WA==
 
-"@xterm/addon-image@^0.7.0":
-  version "0.7.0"
-  resolved "https://registry.yarnpkg.com/@xterm/addon-image/-/addon-image-0.7.0.tgz#86e7342a3fe3fac6ba42944054e660916ec44953"
-  integrity sha512-OXJvmWXhJ5tdqSFX9yR2/d9AXwOz8+lJOghEPu2lSuwgLlMcOZ2YA+YuxPrisXIB2UctEHPAvVDGLbS9cESbzg==
+"@xterm/addon-image@^0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@xterm/addon-image/-/addon-image-0.8.0.tgz#459e13e91b42430043202782fa62319931b29eba"
+  integrity sha512-b/dqpFn3jUad2pUP5UpF4scPIh0WdxRQL/1qyiahGfUI85XZTCXo0py9G6AcOR2QYUw8eJ8EowGspT7BQcgw6A==
 
 "@xterm/addon-ligatures@^0.8.0":
   version "0.8.0"
