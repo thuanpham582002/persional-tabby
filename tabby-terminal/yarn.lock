@@ -35,10 +35,10 @@
   resolved "https://registry.yarnpkg.com/@xterm/addon-serialize/-/addon-serialize-0.12.0.tgz#e83e8c21722dac7970521ade2df3ea07dbc2fd30"
   integrity sha512-VJGfiTYfWJ1MC+eBBm7lY29+EMxnwpl2i6GecEwqe/7oXr2OEdMofdrpeXMa8OtlMd9bqjfdIfOoSZMmAzBm3w==
 
-"@xterm/addon-unicode11@^0.7.0":
-  version "0.7.0"
-  resolved "https://registry.yarnpkg.com/@xterm/addon-unicode11/-/addon-unicode11-0.7.0.tgz#cf4fa4da58b0cbcad3666e03d642184f76fe7d27"
-  integrity sha512-HIhQpRenrslPn6GlUmCYZcSXvdU0JkTgXQ66dx9QwXEzgNhoh70b7hXPZDBoMD/bH/7DYlseeGO7qKQlFzyhbA==
+"@xterm/addon-unicode11@^0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@xterm/addon-unicode11/-/addon-unicode11-0.8.0.tgz#e3f2098154b292bd07c5e07a494a733b0a4c11ba"
+  integrity sha512-LxinXu8SC4OmVa6FhgwsVCBZbr8WoSGzBl2+vqe8WcQ6hb1r6Gj9P99qTNdPiFPh4Ceiu2pC8xukZ6+2nnh49Q==
 
 "@xterm/addon-webgl@^0.17.0":
   version "0.17.0"
